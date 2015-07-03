@@ -1,0 +1,3 @@
+# What My Deep Model Doesn't Know...
+
+This repository contains the code for the demos in the blog post [What My Deep Model Doesn't Know...](http://mlg.eng.cam.ac.uk/yarin/blog_3d801aa532c1ce.html). [ConvnetJS](http://cs.stanford.edu/people/karpathy/convnetjs/) is used here as a framework to interactively demonstrate the properties underlying dropout uncertainty. ConvnetJS was originally developed by Karpathy under the MIT license which is used here as well. 

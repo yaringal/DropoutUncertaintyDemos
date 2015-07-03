@@ -1,0 +1,134 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>RL with dropout uncertainty demo | Yarin Gal - Blog | Cambridge Machine Learning Group</title>
+		<script src="js/jquery.min.js"></script>
+		<!-- demos -->
+		<script src="convnetjs/convnet.js"></script>
+		<script src="convnetjs/util.js"></script>
+		<script src="convnetjs/vis.js"></script>
+		<script src="convnetjs/deepqlearn.js"></script>
+		<script src="convnetjs/npgmain.js"></script>
+		<script src="convnetjs/regression_uncertainty.js"></script>
+		<script src="convnetjs/rldemo_comparison.js"></script>
+		<style type="text/css">
+			canvas { border: 1px solid white; }
+		</style>
+	</head>
+	<body style='font-family: Arial, "Times New Roman", Times, serif;'>
+		<h1>RL with dropout uncertainty demo</h1>
+		<p>
+			Deep reinforcement learning demo with two behavioural policies: epsilon greedy (green), and Thompson sampling using dropout uncertainty (blue). The agents (blue and green discs) are rewarded for eating red things and walking straight, and penalised for eating yellow things and walking into walls. Both agents move at random for the first 3000 moves (the red shade in the graph). The $X$ axis of the plot shows the number of batches divided by 500 on log scale and the $Y$ axis shows average reward. (The code seems to work quickest on Chrome).
+		</p>
+		<p>
+	    <div style="margin-left: auto; margin-right: auto; width: 700px">
+	   		<canvas class="12u" id="graph_canvas" width="700" height="150" style="background-image:url('images/rl_screenshot_2_graph.jpg'); background-size: cover; opacity:0.4"></canvas>
+	   		<canvas class="12u" id="canvas" width="700" height="500" style="background-image:url('images/rl_screenshot_2_main.jpg'); background-size: cover; opacity:0.4"></canvas>
+   		</div>
+			<ul>
+				<li><a href="javascript:show_rl()" class="button special">Start</a></li>
+				<li><a href="javascript:gofast()" class="button alt" alt="Draw after every batch" title="Draw after every batch">Go fast</a></li>
+				<li><a href="javascript:goveryfast()" class="button alt" alt="Draw every 500 batches" title="Draw every 500 batches">Go very fast</a></li>
+				<li><a href="javascript:hide_rl()" class="button">Stop</a></li>
+			</ul>
+	    </p>
+		<p>
+			These are the settings used with the networks:
+	    </p>
+		<p>
+			<textarea id="qspec_greedy" style="height:300px; width:45%" readonly>
+// Epsilon greedy network
+
+var num_inputs = 27; // 9 eyes, each sees 3 numbers (wall, green, red thing proximity)
+var num_actions = 5; // 5 possible angles agent can turn
+var temporal_window = 1; // amount of temporal memory. 0 = agent lives in-the-moment :)
+var network_size = num_inputs*temporal_window + num_actions*temporal_window + num_inputs;
+
+// the value function network computes a value of taking any of the possible actions
+// given an input state. Here we specify one explicitly the hard way
+// but user could also equivalently instead use opt.hidden_layer_sizes = [20,20]
+// to just insert simple relu hidden layers.
+var layer_defs = [];
+layer_defs.push({type:'input', out_sx:1, out_sy:1, out_depth:network_size});
+layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
+layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
+layer_defs.push({type:'regression', num_neurons:num_actions});
+
+// options for the Temporal Difference learner that trains the above net
+// by backpropping the temporal difference learning rule.
+var tdtrainer_options = {learning_rate:0.001, momentum:0.0, batch_size:64, l2_decay:0.01};
+
+var opt = {};
+opt.behavior_policy = 'greedy';
+
+opt.temporal_window = temporal_window;
+opt.experience_size = 30000;
+opt.start_learn_threshold = 1000;
+opt.gamma = 0.7;
+opt.learning_steps_total = 200000;
+opt.learning_steps_burnin = 3000;
+opt.epsilon_min = 0.05;
+opt.epsilon_test_time = 0.05;
+opt.layer_defs = layer_defs;
+opt.tdtrainer_options = tdtrainer_options;
+
+var brain = new deepqlearn.Brain(num_inputs, num_actions, opt); // woohoo
+			</textarea>
+			<textarea id="qspec_thompson" style="height:300px; width:45%" readonly>
+// Thompson sampling network
+
+var num_inputs = 27; // 9 eyes, each sees 3 numbers (wall, green, red thing proximity)
+var num_actions = 5; // 5 possible angles agent can turn
+var temporal_window = 1; // amount of temporal memory. 0 = agent lives in-the-moment :)
+var network_size = num_inputs*temporal_window + num_actions*temporal_window + num_inputs;
+
+// the value function network computes a value of taking any of the possible actions
+// given an input state. Here we specify one explicitly the hard way
+// but user could also equivalently instead use opt.hidden_layer_sizes = [20,20]
+// to just insert simple relu hidden layers.
+var layer_defs = [];
+layer_defs.push({type:'input', out_sx:1, out_sy:1, out_depth:network_size});
+layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
+layer_defs.push({type:'dropout', drop_prob:0.2});
+layer_defs.push({type:'fc', num_neurons: 50, activation:'relu'});
+layer_defs.push({type:'regression', num_neurons:num_actions});
+
+// options for the Temporal Difference learner that trains the above net
+// by backpropping the temporal difference learning rule.
+var tdtrainer_options = {learning_rate:0.001, momentum:0.0, batch_size:64, l2_decay:0.01};
+
+var opt = {};
+opt.behavior_policy = 'thompson';
+
+opt.temporal_window = temporal_window;
+opt.experience_size = 30000;
+opt.start_learn_threshold = 1000;
+opt.gamma = 0.7;
+opt.learning_steps_total = 200000;
+opt.learning_steps_burnin = 3000;
+opt.epsilon_min = 0.05;
+opt.epsilon_test_time = 0.05;
+opt.layer_defs = layer_defs;
+opt.tdtrainer_options = tdtrainer_options;
+
+var brain = new deepqlearn.Brain(num_inputs, num_actions, opt); // woohoo
+			</textarea>
+		</p>
+	<script>
+	    show_rl = function() {
+	    	$(graph_canvas).css('opacity', 1); 
+	    	$(graph_canvas).css('background-image', ''); 
+	    	$('canvas#canvas').css('opacity', 1); 
+	    	$('canvas#canvas').css('background-image', ''); 
+	    	start();
+	    };
+	    hide_rl = function() {
+	    	$(graph_canvas).css('opacity', 0.4); 
+	    	$(graph_canvas).css('background-image', 'url("images/rl_screenshot_2_graph.jpg")'); 
+	    	$('canvas#canvas').css('opacity', 0.4); 
+	    	$('canvas#canvas').css('background-image', 'url("images/rl_screenshot_2_main.jpg")'); 
+	    	stop();
+	    };
+	</script>
+	</body>
+</html>
