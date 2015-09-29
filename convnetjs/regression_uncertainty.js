@@ -83,6 +83,7 @@ function draw_reg(){
     
     // draw final decision
     var neurons = [];
+    ctx_reg.globalAlpha = 0.5;
     ctx_reg.beginPath();
     var c = 0;
     for(var x=0.0; x<=WIDTH; x+= density) {
@@ -103,6 +104,7 @@ function draw_reg(){
     }
     acc += 1;
     ctx_reg.stroke();
+    ctx_reg.globalAlpha = 1.;
 
     // draw individual neurons on first layer
     if(draw_neuron_outputs) {
@@ -151,13 +153,15 @@ function draw_reg(){
     // Draw the uncertainty
     ctx_reg.fillStyle = 'rgb(0,0,250)';
     ctx_reg.globalAlpha = 0.1;
+    l2 = 0.005;
+    tau_inv = (2 * N * 0.00001) / (1 - 0.05) / l2;
     for(var i = 1; i <= 4; i++) {
       ctx_reg.beginPath();
       var c = 0;
       var start = 0
       for(var x=0.0; x<=WIDTH; x+= density) {
         var mean = sum_y[c].get_average();
-        var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean) + 0.00001 / 0.01;
+        var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean) + tau_inv;
         mean += 2*std * i/4.;
         if(x===0) {start = -mean*ss+HEIGHT/2; ctx_reg.moveTo(x, start); }
         else ctx_reg.lineTo(x, -mean*ss+HEIGHT/2);
@@ -166,7 +170,7 @@ function draw_reg(){
       var c = sum_y.length - 1;
       for(var x=WIDTH; x>=0.0; x-= density) {
         var mean = sum_y[c].get_average();
-        var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean) + 0.00001 / 0.01;
+        var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean) + tau_inv;
         mean -= 2*std * i/4.;
         ctx_reg.lineTo(x, -mean*ss+HEIGHT/2);
         c -= 1;
